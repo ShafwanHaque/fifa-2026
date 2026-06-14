@@ -27,7 +27,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <footer className="border-t border-border px-4 py-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} skidoo. All rights reserved.
+        </footer>
+      </body>
     </html>
   );
 }

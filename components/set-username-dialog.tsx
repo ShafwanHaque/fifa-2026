@@ -67,7 +67,7 @@ export function SetUsernameDialog({
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="e.g. Messi10"
+            placeholder="e.g. Skidoo"
             maxLength={32}
             aria-invalid={!!error}
             autoFocus
