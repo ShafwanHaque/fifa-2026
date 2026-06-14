@@ -2,8 +2,27 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { groups } from "@/lib/world-cup-data";
+import { getStandings, getMatches, type StandingsGroup, type Match } from "@/lib/football-data";
+import { formatMatchDate } from "@/lib/utils";
 
-export default function PointTablePage() {
+export default async function PointTablePage() {
+  let standings: StandingsGroup[] | null = null;
+  try {
+    standings = await getStandings();
+  } catch {
+    standings = null;
+  }
+
+  let results: Match[] = [];
+  try {
+    const matches = await getMatches();
+    results = matches
+      .filter((match) => match.stage === "GROUP_STAGE" && match.status === "FINISHED")
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime());
+  } catch {
+    results = [];
+  }
+
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -28,41 +47,132 @@ export default function PointTablePage() {
           View knockout stage bracket →
         </Link>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {groups.map((group) => (
-            <Card key={group.name} className="gap-2 px-3">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Group {group.name}
-              </span>
-              <ul className="flex flex-col gap-1.5">
-                {group.teams.map((team, i) => (
-                  <li
-                    key={team.name}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-base leading-none">
-                        {team.flag}
-                      </span>
-                      <span
-                        className={
-                          i < 2 ? "font-medium" : "text-muted-foreground"
-                        }
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {standings
+            ? standings.map((group) => (
+                <Card key={group.group} className="gap-2 px-3">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {group.group}
+                  </span>
+                  <ul className="flex flex-col gap-1.5">
+                    {group.table.map((row, i) => (
+                      <li
+                        key={row.team.id}
+                        className="flex items-center justify-between gap-2 text-sm"
                       >
-                        {team.name}
-                      </span>
-                    </span>
-                    {i < 2 && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {i + 1}
-                      </Badge>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          ))}
+                        <span className="flex min-w-0 items-center gap-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={row.team.crest}
+                            alt=""
+                            className="h-4 w-4 shrink-0"
+                          />
+                          <span
+                            className={`truncate ${
+                              i < 2 ? "font-medium" : "text-muted-foreground"
+                            }`}
+                          >
+                            {row.team.shortName}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                          <span className="tabular-nums">
+                            {row.playedGames}P
+                          </span>
+                          <span className="tabular-nums font-medium text-foreground">
+                            {row.points}pts
+                          </span>
+                          {i < 2 && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {i + 1}
+                            </Badge>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              ))
+            : groups.map((group) => (
+                <Card key={group.name} className="gap-2 px-3">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Group {group.name}
+                  </span>
+                  <ul className="flex flex-col gap-1.5">
+                    {group.teams.map((team, i) => (
+                      <li
+                        key={team.name}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-base leading-none">
+                            {team.flag}
+                          </span>
+                          <span
+                            className={
+                              i < 2 ? "font-medium" : "text-muted-foreground"
+                            }
+                          >
+                            {team.name}
+                          </span>
+                        </span>
+                        {i < 2 && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {i + 1}
+                          </Badge>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              ))}
         </div>
+
+        {results.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold tracking-tight">
+              Latest Results
+            </h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {results.map((match) => (
+                <Card
+                  key={match.id}
+                  className="flex-row items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                >
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={match.homeTeam.crest ?? undefined}
+                        alt=""
+                        className="h-4 w-4 shrink-0"
+                      />
+                      <span className="truncate">{match.homeTeam.shortName}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={match.awayTeam.crest ?? undefined}
+                        alt=""
+                        className="h-4 w-4 shrink-0"
+                      />
+                      <span className="truncate">{match.awayTeam.shortName}</span>
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                    <span className="font-semibold tabular-nums">
+                      {match.score.fullTime.home} - {match.score.fullTime.away}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {match.group?.replace("GROUP_", "Group ")} ·{" "}
+                      {formatMatchDate(match.utcDate)}
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

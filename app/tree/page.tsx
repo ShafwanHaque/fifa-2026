@@ -8,6 +8,8 @@ import {
   type BracketMatch,
   type BracketSlot,
 } from "@/lib/world-cup-data";
+import { getMatches, KNOCKOUT_STAGES, type Match } from "@/lib/football-data";
+import { formatMatchDate } from "@/lib/utils";
 
 const TOTAL_HEIGHT = 1024;
 const CARD_HEIGHT = 50;
@@ -105,6 +107,32 @@ function Connector({ feederCount }: { feederCount: number }) {
   );
 }
 
+function MatchRow({ match }: { match: Match }) {
+  const isFinished = match.status === "FINISHED";
+
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md bg-card px-2.5 py-1.5 text-xs ring-1 ring-foreground/10">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate font-medium">
+          {match.homeTeam.shortName ?? "TBD"}
+        </span>
+        <span className="truncate font-medium">
+          {match.awayTeam.shortName ?? "TBD"}
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-0.5 text-right text-muted-foreground">
+        {isFinished ? (
+          <span className="font-semibold tabular-nums text-foreground">
+            {match.score.fullTime.home} - {match.score.fullTime.away}
+          </span>
+        ) : (
+          <span className="tabular-nums">{formatMatchDate(match.utcDate)}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ChampionBox() {
   const center = TOTAL_HEIGHT / 2;
   return (
@@ -127,7 +155,17 @@ function ChampionBox() {
   );
 }
 
-export default function TreePage() {
+export default async function TreePage() {
+  let knockoutMatches: Match[] = [];
+  try {
+    const matches = await getMatches();
+    knockoutMatches = matches.sort(
+      (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()
+    );
+  } catch {
+    knockoutMatches = [];
+  }
+
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
@@ -199,6 +237,33 @@ export default function TreePage() {
             concludes.
           </p>
         </section>
+
+        {knockoutMatches.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold tracking-tight">
+              Knockout Schedule
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {KNOCKOUT_STAGES.map(({ stage, label }) => {
+                const matches = knockoutMatches.filter((m) => m.stage === stage);
+                if (matches.length === 0) return null;
+
+                return (
+                  <div key={stage} className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {label}
+                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      {matches.map((match) => (
+                        <MatchRow key={match.id} match={match} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

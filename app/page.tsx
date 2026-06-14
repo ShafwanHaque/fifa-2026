@@ -4,6 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SetUsernameDialog } from "@/components/set-username-dialog";
+import {
+  getMatches,
+  getMatchLabel,
+  type Match as LiveMatch,
+  type MatchTeam,
+} from "@/lib/football-data";
+import { formatMatchDate, formatLiveMinute } from "@/lib/utils";
 
 type MatchStatus = "live" | "upcoming" | "finished";
 
@@ -13,7 +20,7 @@ interface Team {
   score: number | null;
 }
 
-interface Match {
+interface FallbackMatch {
   id: number;
   stage: string;
   status: MatchStatus;
@@ -22,7 +29,7 @@ interface Match {
   away: Team;
 }
 
-const matches: Match[] = [
+const fallbackMatches: FallbackMatch[] = [
   {
     id: 1,
     stage: "Group A · Matchday 2",
@@ -104,9 +111,75 @@ function TeamRow({ team }: { team: Team }) {
   );
 }
 
+function LiveStatusBadge({ match }: { match: LiveMatch }) {
+  if (match.status === "PAUSED") {
+    return (
+      <Badge variant="destructive" className="gap-1.5">
+        <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
+        HT
+      </Badge>
+    );
+  }
+
+  if (match.status === "IN_PLAY") {
+    return (
+      <Badge variant="destructive" className="gap-1.5">
+        <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
+        {formatLiveMinute(match.utcDate)}
+      </Badge>
+    );
+  }
+
+  if (match.status === "FINISHED") {
+    return <Badge variant="secondary">FT</Badge>;
+  }
+
+  return <Badge variant="outline">{formatMatchDate(match.utcDate)}</Badge>;
+}
+
+function LiveTeamRow({ team, score }: { team: MatchTeam; score: number | null }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        {team.crest && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={team.crest} alt="" className="h-6 w-6" />
+        )}
+        <span className="font-medium">{team.shortName ?? "TBD"}</span>
+      </div>
+      <span className="text-lg font-semibold tabular-nums">
+        {score === null ? "–" : score}
+      </span>
+    </div>
+  );
+}
+
 export default async function Home() {
   const cookieStore = await cookies();
   const userName = cookieStore.get("userName")?.value;
+
+  let liveMatches: LiveMatch[] = [];
+  try {
+    const all = await getMatches();
+    const inPlay = all.filter(
+      (m) => m.status === "IN_PLAY" || m.status === "PAUSED"
+    );
+    const recent = all
+      .filter((m) => m.status === "FINISHED")
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime())
+      .slice(0, 3);
+    const upcoming = all
+      .filter((m) => m.status === "SCHEDULED" || m.status === "TIMED")
+      .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
+      .slice(0, 3);
+    liveMatches = [...inPlay, ...recent, ...upcoming];
+  } catch {
+    liveMatches = [];
+  }
+
+  const hasLiveMatch = liveMatches.some(
+    (m) => m.status === "IN_PLAY" || m.status === "PAUSED"
+  );
 
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
@@ -122,10 +195,12 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-3">
             <SetUsernameDialog currentUserName={userName} />
-            <Badge variant="destructive" className="gap-1.5">
-              <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
-              Live
-            </Badge>
+            {hasLiveMatch && (
+              <Badge variant="destructive" className="gap-1.5">
+                <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
+                Live
+              </Badge>
+            )}
           </div>
         </header>
 
@@ -145,21 +220,48 @@ export default async function Home() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {matches.map((match) => (
-            <Card key={match.id} className="gap-3 px-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {match.stage}
-                </span>
-                <StatusBadge status={match.status} time={match.time} />
-              </div>
-              <Separator />
-              <div className="flex flex-col gap-2.5">
-                <TeamRow team={match.home} />
-                <TeamRow team={match.away} />
-              </div>
-            </Card>
-          ))}
+          {liveMatches.length > 0
+            ? liveMatches.map((match) => (
+                <Card key={match.id} className="gap-3 px-4">
+                  {(match.status === "IN_PLAY" || match.status === "PAUSED") && (
+                    <div className="-mx-4 -mt-4 h-1 overflow-hidden bg-destructive/15">
+                      <div className="h-full w-1/3 animate-live-bar bg-destructive" />
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {getMatchLabel(match)}
+                    </span>
+                    <LiveStatusBadge match={match} />
+                  </div>
+                  <Separator />
+                  <div className="flex flex-col gap-2.5">
+                    <LiveTeamRow
+                      team={match.homeTeam}
+                      score={match.score.fullTime.home}
+                    />
+                    <LiveTeamRow
+                      team={match.awayTeam}
+                      score={match.score.fullTime.away}
+                    />
+                  </div>
+                </Card>
+              ))
+            : fallbackMatches.map((match) => (
+                <Card key={match.id} className="gap-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {match.stage}
+                    </span>
+                    <StatusBadge status={match.status} time={match.time} />
+                  </div>
+                  <Separator />
+                  <div className="flex flex-col gap-2.5">
+                    <TeamRow team={match.home} />
+                    <TeamRow team={match.away} />
+                  </div>
+                </Card>
+              ))}
         </div>
       </div>
     </main>
