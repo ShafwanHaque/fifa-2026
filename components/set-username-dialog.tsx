@@ -43,18 +43,22 @@ export function SetUsernameDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="flex items-center gap-2">
-        {currentUserName && (
-          <span className="text-sm text-muted-foreground">
+      {currentUserName ? (
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="max-w-24 cursor-pointer truncate text-sm text-muted-foreground transition-colors hover:text-foreground sm:max-w-none"
+          >
             Hi, {currentUserName}
-          </span>
-        )}
+          </button>
+        </DialogTrigger>
+      ) : (
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
-            {currentUserName ? "Update username" : "Set username"}
+            Set username
           </Button>
         </DialogTrigger>
-      </div>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Set username</DialogTitle>

@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { SetUsernameDialog } from "@/components/set-username-dialog";
 import { LocalDate } from "@/components/local-date";
 import { MatchActionDialog } from "@/components/match-action-dialog";
 import { MatchCommunityStats } from "@/components/match-community-stats";
+import { UserHeaderActions } from "@/components/user-header-actions";
 import {
   getMatches,
   getMatchLabel,
@@ -17,7 +17,6 @@ import {
 } from "@/lib/football-data";
 import { getMyPredictions, getPredictionCounts } from "@/lib/actions/predictions";
 import { getMySupports, getSupportCounts } from "@/lib/actions/supports";
-import { computeScore } from "@/lib/predictions";
 import { formatLiveMinute } from "@/lib/utils";
 
 const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -178,11 +177,9 @@ export default async function Home() {
   const cookieStore = await cookies();
   const userName = cookieStore.get("userName")?.value;
 
-  let allMatches: LiveMatch[] = [];
   let liveMatches: LiveMatch[] = [];
   try {
     const all = await getMatches();
-    allMatches = all;
     const inPlay = all.filter(
       (m) => m.status === "IN_PLAY" || m.status === "PAUSED"
     );
@@ -213,7 +210,6 @@ export default async function Home() {
   const supportByMatchId = new Map(
     supports.map((s) => [s.match_id, s.supported_team_id])
   );
-  const totalScore = computeScore(predictions, allMatches);
 
   const actionableMatchIds = liveMatches
     .filter(
@@ -230,28 +226,27 @@ export default async function Home() {
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              FIFA World Cup 2026
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Live Scores
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/tree">
-              <Badge
-                variant="secondary"
-                className="gap-1.5 border border-amber-500/20 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
-              >
-                <Trophy className="size-3.5 text-amber-400" />
-                {userName ? `${totalScore} pts` : "Earn points"}
-              </Badge>
-            </Link>
-            <SetUsernameDialog currentUserName={userName} />
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                FIFA World Cup 2026
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Live Scores
+              </h1>
+            </div>
             {hasLiveMatch && (
-              <Badge variant="destructive" className="gap-1.5">
+              <Badge variant="destructive" className="gap-1.5 sm:hidden">
+                <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
+                Live
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <UserHeaderActions />
+            {hasLiveMatch && (
+              <Badge variant="destructive" className="hidden gap-1.5 sm:flex">
                 <span className="size-1.5 animate-pulse rounded-full bg-destructive" />
                 Live
               </Badge>

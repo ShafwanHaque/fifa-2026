@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LocalDate } from "@/components/local-date";
+import { UserHeaderActions } from "@/components/user-header-actions";
 import { groups } from "@/lib/world-cup-data";
 import { getStandings, getMatches, type StandingsGroup, type Match } from "@/lib/football-data";
 
@@ -36,18 +37,21 @@ export default async function PointTablePage() {
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header>
-          <p className="text-sm font-medium text-muted-foreground">
-            FIFA World Cup 2026
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Group Stage
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            48 teams compete across 12 groups. The top two teams from each
-            group, plus the 8 best third-placed teams, advance to the Round
-            of 32.
-          </p>
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">
+              FIFA World Cup 2026
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Group Stage
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              48 teams compete across 12 groups. The top two teams from each
+              group, plus the 8 best third-placed teams, advance to the Round
+              of 32.
+            </p>
+          </div>
+          <UserHeaderActions />
         </header>
 
         <div className="flex flex-col gap-3 sm:flex-row">
