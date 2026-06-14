@@ -80,6 +80,7 @@ export interface Match {
   homeTeam: MatchTeam;
   awayTeam: MatchTeam;
   score: {
+    winner: "HOME_TEAM" | "AWAY_TEAM" | "DRAW" | null;
     fullTime: { home: number | null; away: number | null };
   };
 }

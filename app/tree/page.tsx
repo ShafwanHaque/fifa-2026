@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ArrowRight, Home, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { LocalDate } from "@/components/local-date";
+import {
+  PredictionsDialog,
+  type PredictionStage,
+} from "@/components/predictions-dialog";
 import {
   round32,
   round16,
@@ -12,6 +18,13 @@ import {
   type BracketSlot,
 } from "@/lib/world-cup-data";
 import { getMatches, KNOCKOUT_STAGES, type Match } from "@/lib/football-data";
+import { getMyPredictions } from "@/lib/actions/predictions";
+import {
+  computeScore,
+  getWinnerTeamId,
+  isPredictable,
+  POINTS_BY_STAGE,
+} from "@/lib/predictions";
 
 const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -168,6 +181,9 @@ function ChampionBox() {
 }
 
 export default async function TreePage() {
+  const cookieStore = await cookies();
+  const userName = cookieStore.get("userName")?.value;
+
   let knockoutMatches: Match[] = [];
   try {
     const matches = await getMatches();
@@ -177,6 +193,43 @@ export default async function TreePage() {
   } catch {
     knockoutMatches = [];
   }
+
+  const predictions = await getMyPredictions();
+  const totalScore = computeScore(predictions, knockoutMatches);
+  const predictionByMatchId = new Map(
+    predictions.map((p) => [p.match_id, p])
+  );
+
+  const predictionStages: PredictionStage[] = KNOCKOUT_STAGES.filter(
+    ({ stage }) => stage in POINTS_BY_STAGE
+  ).map(({ stage, label }) => ({
+    stage,
+    label,
+    points: POINTS_BY_STAGE[stage],
+    matches: knockoutMatches
+      .filter((m) => m.stage === stage)
+      .map((m) => {
+        const prediction = predictionByMatchId.get(m.id);
+        const winnerId = getWinnerTeamId(m);
+        const result =
+          m.status === "FINISHED" && prediction
+            ? winnerId === prediction.predicted_team_id
+              ? ("correct" as const)
+              : ("incorrect" as const)
+            : null;
+        const pointsAwarded = result ? POINTS_BY_STAGE[stage][result] : null;
+
+        return {
+          id: m.id,
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          predictedTeamId: prediction?.predicted_team_id ?? null,
+          predictable: isPredictable(m),
+          result,
+          pointsAwarded,
+        };
+      }),
+  }));
 
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
@@ -226,6 +279,23 @@ export default async function TreePage() {
             </Link>
           </Button>
         </div>
+
+        <Card className="flex-col items-start gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">
+              🔮 Predict the knockout bracket
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Your picks are valuable to us — call the winner of each match
+              before kickoff and climb the leaderboard.
+            </p>
+          </div>
+          <PredictionsDialog
+            userName={userName}
+            totalScore={totalScore}
+            stages={predictionStages}
+          />
+        </Card>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold tracking-tight">
