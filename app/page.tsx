@@ -7,12 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SetUsernameDialog } from "@/components/set-username-dialog";
 import { LocalDate } from "@/components/local-date";
+import { MatchActionDialog } from "@/components/match-action-dialog";
+import { MatchCommunityStats } from "@/components/match-community-stats";
 import {
   getMatches,
   getMatchLabel,
   type Match as LiveMatch,
   type MatchTeam,
 } from "@/lib/football-data";
+import { getMyPredictions, getPredictionCounts } from "@/lib/actions/predictions";
+import { getMySupports, getSupportCounts } from "@/lib/actions/supports";
+import { computeScore } from "@/lib/predictions";
 import { formatLiveMinute } from "@/lib/utils";
 
 const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -173,9 +178,11 @@ export default async function Home() {
   const cookieStore = await cookies();
   const userName = cookieStore.get("userName")?.value;
 
+  let allMatches: LiveMatch[] = [];
   let liveMatches: LiveMatch[] = [];
   try {
     const all = await getMatches();
+    allMatches = all;
     const inPlay = all.filter(
       (m) => m.status === "IN_PLAY" || m.status === "PAUSED"
     );
@@ -196,6 +203,30 @@ export default async function Home() {
     (m) => m.status === "IN_PLAY" || m.status === "PAUSED"
   );
 
+  const [predictions, supports] = await Promise.all([
+    getMyPredictions(),
+    getMySupports(),
+  ]);
+  const predictionByMatchId = new Map(
+    predictions.map((p) => [p.match_id, p.predicted_team_id])
+  );
+  const supportByMatchId = new Map(
+    supports.map((s) => [s.match_id, s.supported_team_id])
+  );
+  const totalScore = computeScore(predictions, allMatches);
+
+  const actionableMatchIds = liveMatches
+    .filter(
+      (m) =>
+        m.status !== "FINISHED" && m.homeTeam.id != null && m.awayTeam.id != null
+    )
+    .map((m) => m.id);
+
+  const [predictionCounts, supportCounts] = await Promise.all([
+    getPredictionCounts(actionableMatchIds),
+    getSupportCounts(actionableMatchIds),
+  ]);
+
   return (
     <main className="flex-1 px-4 py-10 sm:py-16">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
@@ -209,6 +240,15 @@ export default async function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/tree">
+              <Badge
+                variant="secondary"
+                className="gap-1.5 border border-amber-500/20 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
+              >
+                <Trophy className="size-3.5 text-amber-400" />
+                {userName ? `${totalScore} pts` : "Earn points"}
+              </Badge>
+            </Link>
             <SetUsernameDialog currentUserName={userName} />
             {hasLiveMatch && (
               <Badge variant="destructive" className="gap-1.5">
@@ -256,32 +296,63 @@ export default async function Home() {
 
         <div className="flex flex-col gap-3">
           {liveMatches.length > 0
-            ? liveMatches.map((match) => (
-                <Card key={match.id} className="gap-3 px-4">
-                  {(match.status === "IN_PLAY" || match.status === "PAUSED") && (
-                    <div className="-mx-4 -mt-4 h-1 overflow-hidden bg-destructive/15">
-                      <div className="h-full w-1/3 animate-live-bar bg-destructive" />
+            ? liveMatches.map((match) => {
+                const showActions =
+                  match.status !== "FINISHED" &&
+                  match.homeTeam.id != null &&
+                  match.awayTeam.id != null;
+
+                return (
+                  <Card key={match.id} className="gap-3 px-4">
+                    {(match.status === "IN_PLAY" || match.status === "PAUSED") && (
+                      <div className="-mx-4 -mt-4 h-1 overflow-hidden bg-destructive/15">
+                        <div className="h-full w-1/3 animate-live-bar bg-destructive" />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {getMatchLabel(match)}
+                      </span>
+                      <LiveStatusBadge match={match} />
                     </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {getMatchLabel(match)}
-                    </span>
-                    <LiveStatusBadge match={match} />
-                  </div>
-                  <Separator />
-                  <div className="flex flex-col gap-2.5">
-                    <LiveTeamRow
-                      team={match.homeTeam}
-                      score={match.score.fullTime.home}
-                    />
-                    <LiveTeamRow
-                      team={match.awayTeam}
-                      score={match.score.fullTime.away}
-                    />
-                  </div>
-                </Card>
-              ))
+                    <Separator />
+                    <div className="flex flex-col gap-2.5">
+                      <LiveTeamRow
+                        team={match.homeTeam}
+                        score={match.score.fullTime.home}
+                      />
+                      <LiveTeamRow
+                        team={match.awayTeam}
+                        score={match.score.fullTime.away}
+                      />
+                    </div>
+                    {showActions && (
+                      <>
+                        <Separator />
+                        <div className="flex gap-2">
+                          <MatchActionDialog
+                            match={match}
+                            userName={userName}
+                            type="prediction"
+                            pickedTeamId={predictionByMatchId.get(match.id) ?? null}
+                          />
+                          <MatchActionDialog
+                            match={match}
+                            userName={userName}
+                            type="support"
+                            pickedTeamId={supportByMatchId.get(match.id) ?? null}
+                          />
+                        </div>
+                        <MatchCommunityStats
+                          match={match}
+                          predictionCounts={predictionCounts.get(match.id)}
+                          supportCounts={supportCounts.get(match.id)}
+                        />
+                      </>
+                    )}
+                  </Card>
+                );
+              })
             : fallbackMatches.map((match) => (
                 <Card key={match.id} className="gap-3 px-4">
                   <div className="flex items-center justify-between">

@@ -267,8 +267,8 @@ function TeamPickButton({
         selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-transparent bg-muted/50 text-muted-foreground",
-        !disabled && "hover:border-foreground/20 hover:text-foreground",
-        disabled && "cursor-default opacity-70"
+        !disabled && "cursor-pointer hover:border-foreground/20 hover:text-foreground",
+        disabled && "cursor-not-allowed opacity-70"
       )}
     >
       {team.crest && (

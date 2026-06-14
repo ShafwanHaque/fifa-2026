@@ -258,7 +258,7 @@ export default async function TreePage() {
             <Link href="/">
               <span className="flex items-center gap-2.5">
                 <Home className="size-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Home</span>
+                <span className="text-sm font-medium">Back to Home</span>
               </span>
             </Link>
           </Button>
