@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { ArrowRight, Home, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { LocalDate } from "@/components/local-date";
 import {
   round32,
   round16,
@@ -9,7 +12,14 @@ import {
   type BracketSlot,
 } from "@/lib/world-cup-data";
 import { getMatches, KNOCKOUT_STAGES, type Match } from "@/lib/football-data";
-import { formatMatchDate } from "@/lib/utils";
+
+const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
 
 const TOTAL_HEIGHT = 1024;
 const CARD_HEIGHT = 50;
@@ -126,7 +136,9 @@ function MatchRow({ match }: { match: Match }) {
             {match.score.fullTime.home} - {match.score.fullTime.away}
           </span>
         ) : (
-          <span className="tabular-nums">{formatMatchDate(match.utcDate)}</span>
+          <span className="tabular-nums">
+            <LocalDate date={match.utcDate} options={MATCH_DATE_OPTIONS} />
+          </span>
         )}
       </div>
     </div>
@@ -183,12 +195,37 @@ export default async function TreePage() {
           </p>
         </header>
 
-        <Link
-          href="/point-table"
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          View group stage standings →
-        </Link>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-auto justify-between rounded-xl px-4 py-3"
+          >
+            <Link href="/">
+              <span className="flex items-center gap-2.5">
+                <Home className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Home</span>
+              </span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="secondary"
+            size="lg"
+            className="h-auto w-full justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-100 hover:bg-amber-500/15 sm:w-auto"
+          >
+            <Link href="/point-table">
+              <span className="flex items-center gap-2.5">
+                <Trophy className="size-4 text-amber-400" />
+                <span className="text-sm font-medium">
+                  View group stage standings
+                </span>
+              </span>
+              <ArrowRight className="size-4 text-amber-400 transition-transform group-hover/button:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold tracking-tight">

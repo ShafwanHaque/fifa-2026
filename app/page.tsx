@@ -1,16 +1,27 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { ArrowRight, Network, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SetUsernameDialog } from "@/components/set-username-dialog";
+import { LocalDate } from "@/components/local-date";
 import {
   getMatches,
   getMatchLabel,
   type Match as LiveMatch,
   type MatchTeam,
 } from "@/lib/football-data";
-import { formatMatchDate, formatLiveMinute } from "@/lib/utils";
+import { formatLiveMinute } from "@/lib/utils";
+
+const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
 
 type MatchStatus = "live" | "upcoming" | "finished";
 
@@ -134,7 +145,11 @@ function LiveStatusBadge({ match }: { match: LiveMatch }) {
     return <Badge variant="secondary">FT</Badge>;
   }
 
-  return <Badge variant="outline">{formatMatchDate(match.utcDate)}</Badge>;
+  return (
+    <Badge variant="outline">
+      <LocalDate date={match.utcDate} options={MATCH_DATE_OPTIONS} />
+    </Badge>
+  );
 }
 
 function LiveTeamRow({ team, score }: { team: MatchTeam; score: number | null }) {
@@ -204,19 +219,39 @@ export default async function Home() {
           </div>
         </header>
 
-        <div className="flex flex-wrap gap-4">
-          <Link
-            href="/point-table"
-            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            asChild
+            variant="secondary"
+            size="lg"
+            className="h-auto flex-1 justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-amber-100 hover:bg-amber-500/15"
           >
-            View group stage standings →
-          </Link>
-          <Link
-            href="/tree"
-            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            <Link href="/point-table">
+              <span className="flex items-center gap-2.5">
+                <Trophy className="size-4 text-amber-400" />
+                <span className="text-sm font-medium">
+                  View group stage standings
+                </span>
+              </span>
+              <ArrowRight className="size-4 text-amber-400 transition-transform group-hover/button:translate-x-1" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="secondary"
+            size="lg"
+            className="h-auto flex-1 justify-between rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sky-100 hover:bg-sky-500/15"
           >
-            View knockout stage bracket →
-          </Link>
+            <Link href="/tree">
+              <span className="flex items-center gap-2.5">
+                <Network className="size-4 text-sky-400" />
+                <span className="text-sm font-medium">
+                  View knockout stage bracket
+                </span>
+              </span>
+              <ArrowRight className="size-4 text-sky-400 transition-transform group-hover/button:translate-x-1" />
+            </Link>
+          </Button>
         </div>
 
         <div className="flex flex-col gap-3">

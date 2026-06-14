@@ -1,9 +1,19 @@
 import Link from "next/link";
+import { ArrowRight, Home, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { LocalDate } from "@/components/local-date";
 import { groups } from "@/lib/world-cup-data";
 import { getStandings, getMatches, type StandingsGroup, type Match } from "@/lib/football-data";
-import { formatMatchDate } from "@/lib/utils";
+
+const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
 
 export default async function PointTablePage() {
   let standings: StandingsGroup[] | null = null;
@@ -40,12 +50,37 @@ export default async function PointTablePage() {
           </p>
         </header>
 
-        <Link
-          href="/tree"
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          View knockout stage bracket →
-        </Link>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-auto justify-between rounded-xl px-4 py-3"
+          >
+            <Link href="/">
+              <span className="flex items-center gap-2.5">
+                <Home className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Home</span>
+              </span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="secondary"
+            size="lg"
+            className="h-auto w-full justify-between rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sky-100 hover:bg-sky-500/15 sm:w-auto"
+          >
+            <Link href="/tree">
+              <span className="flex items-center gap-2.5">
+                <Network className="size-4 text-sky-400" />
+                <span className="text-sm font-medium">
+                  View knockout stage bracket
+                </span>
+              </span>
+              <ArrowRight className="size-4 text-sky-400 transition-transform group-hover/button:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {standings
@@ -165,7 +200,7 @@ export default async function PointTablePage() {
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                       {match.group?.replace("GROUP_", "Group ")} ·{" "}
-                      {formatMatchDate(match.utcDate)}
+                      <LocalDate date={match.utcDate} options={MATCH_DATE_OPTIONS} />
                     </span>
                   </div>
                 </Card>
