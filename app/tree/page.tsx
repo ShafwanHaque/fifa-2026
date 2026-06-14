@@ -9,6 +9,7 @@ import {
   type PredictionStage,
 } from "@/components/predictions-dialog";
 import { UserHeaderActions } from "@/components/user-header-actions";
+import { BracketMatchButton, SlotRow } from "@/components/bracket-match-button";
 import {
   round32,
   round16,
@@ -16,13 +17,22 @@ import {
   semiFinals,
   final,
   type BracketMatch,
-  type BracketSlot,
 } from "@/lib/world-cup-data";
-import { getMatches, KNOCKOUT_STAGES, type Match } from "@/lib/football-data";
-import { getMyPredictions } from "@/lib/actions/predictions";
+import {
+  getMatches,
+  getStandings,
+  KNOCKOUT_STAGES,
+  type Match,
+  type StandingsGroup,
+} from "@/lib/football-data";
+import { getMyPredictions, getPredictionCounts } from "@/lib/actions/predictions";
 import {
   computeScore,
+  decodeGroupPositionId,
+  encodeGroupPositionId,
   getWinnerTeamId,
+  GROUP_LETTERS,
+  isGroupFinished,
   isPredictable,
   POINTS_BY_STAGE,
 } from "@/lib/predictions";
@@ -41,26 +51,31 @@ const CARD_WIDTH = 176;
 const CONNECTOR_WIDTH = 28;
 const CHAMPION_WIDTH = 160;
 
-const rounds: { name: string; matches: BracketMatch[] }[] = [
-  { name: "Round of 32", matches: round32 },
+const rounds: { name: string; matches: BracketMatch[]; interactive?: boolean }[] = [
+  { name: "Round of 32", matches: round32, interactive: true },
   { name: "Round of 16", matches: round16 },
   { name: "Quarter-finals", matches: quarterFinals },
   { name: "Semi-finals", matches: semiFinals },
   { name: "Final", matches: final },
 ];
 
-function SlotRow({ slot }: { slot: BracketSlot }) {
-  return (
-    <div className="flex items-center justify-between gap-2 px-2.5 py-1">
-      <span className="truncate font-medium">{slot.label}</span>
-      <span className="shrink-0 text-[10px] text-muted-foreground">
-        {slot.sub}
-      </span>
-    </div>
-  );
-}
-
-function RoundColumn({ matches }: { matches: BracketMatch[] }) {
+function RoundColumn({
+  matches,
+  interactive,
+  standings,
+  userName,
+  finishedGroups,
+  myGroupPicks,
+  groupPositionCounts,
+}: {
+  matches: BracketMatch[];
+  interactive?: boolean;
+  standings: StandingsGroup[];
+  userName?: string;
+  finishedGroups: string[];
+  myGroupPicks: Record<string, number>;
+  groupPositionCounts: Map<number, Map<number, number>>;
+}) {
   const slot = TOTAL_HEIGHT / matches.length;
   return (
     <div
@@ -70,15 +85,28 @@ function RoundColumn({ matches }: { matches: BracketMatch[] }) {
       {matches.map((match, i) => (
         <div
           key={match.id}
-          className="absolute flex flex-col justify-center divide-y divide-border rounded-md bg-card text-xs ring-1 ring-foreground/10"
+          className="absolute"
           style={{
             top: slot * (i + 0.5) - CARD_HEIGHT / 2,
             height: CARD_HEIGHT,
             width: CARD_WIDTH,
           }}
         >
-          <SlotRow slot={match.home} />
-          <SlotRow slot={match.away} />
+          {interactive ? (
+            <BracketMatchButton
+              match={match}
+              standings={standings}
+              userName={userName}
+              finishedGroups={finishedGroups}
+              myGroupPicks={myGroupPicks}
+              groupPositionCounts={groupPositionCounts}
+            />
+          ) : (
+            <div className="flex h-full flex-col justify-center divide-y divide-border rounded-md bg-card text-xs ring-1 ring-foreground/10">
+              <SlotRow slot={match.home} />
+              <SlotRow slot={match.away} />
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -195,11 +223,36 @@ export default async function TreePage() {
     knockoutMatches = [];
   }
 
+  let standings: StandingsGroup[] = [];
+  try {
+    standings = await getStandings();
+  } catch {
+    standings = [];
+  }
+
   const predictions = await getMyPredictions();
-  const totalScore = computeScore(predictions, knockoutMatches);
+  const totalScore = computeScore(predictions, knockoutMatches, standings);
   const predictionByMatchId = new Map(
     predictions.map((p) => [p.match_id, p])
   );
+
+  const finishedGroups = GROUP_LETTERS.filter((letter) =>
+    isGroupFinished(knockoutMatches, letter)
+  );
+
+  const myGroupPicks: Record<string, number> = {};
+  for (const p of predictions) {
+    if (p.stage !== "GROUP_POSITION") continue;
+    const slot = decodeGroupPositionId(p.match_id);
+    if (!slot) continue;
+    myGroupPicks[`${slot.group}-${slot.position}`] = p.predicted_team_id;
+  }
+
+  const groupPositionIds = GROUP_LETTERS.flatMap((letter) => [
+    encodeGroupPositionId(letter, 1),
+    encodeGroupPositionId(letter, 2),
+  ]);
+  const groupPositionCounts = await getPredictionCounts(groupPositionIds);
 
   const predictionStages: PredictionStage[] = KNOCKOUT_STAGES.filter(
     ({ stage }) => stage in POINTS_BY_STAGE
@@ -335,7 +388,15 @@ export default async function TreePage() {
               <div className="flex items-start">
                 {rounds.map((round) => (
                   <div key={round.name} className="contents">
-                    <RoundColumn matches={round.matches} />
+                    <RoundColumn
+                      matches={round.matches}
+                      interactive={round.interactive}
+                      standings={standings}
+                      userName={userName}
+                      finishedGroups={finishedGroups}
+                      myGroupPicks={myGroupPicks}
+                      groupPositionCounts={groupPositionCounts}
+                    />
                     <Connector feederCount={round.matches.length} />
                   </div>
                 ))}

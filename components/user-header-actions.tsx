@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { Crown, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SetUsernameDialog } from "@/components/set-username-dialog";
-import { getMatches, type Match } from "@/lib/football-data";
+import { getMatches, getStandings, type Match, type StandingsGroup } from "@/lib/football-data";
 import { getMyPredictions } from "@/lib/actions/predictions";
 import { computeScore } from "@/lib/predictions";
 
@@ -19,7 +19,13 @@ export async function UserHeaderActions() {
   } catch {
     matches = [];
   }
-  const totalScore = computeScore(predictions, matches);
+  let standings: StandingsGroup[] = [];
+  try {
+    standings = await getStandings();
+  } catch {
+    standings = [];
+  }
+  const totalScore = computeScore(predictions, matches, standings);
 
   return (
     <div className="flex flex-wrap items-center gap-2 sm:gap-3">

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LocalDate } from "@/components/local-date";
 import { UserHeaderActions } from "@/components/user-header-actions";
-import { groups } from "@/lib/world-cup-data";
 import { getStandings, getMatches, type StandingsGroup, type Match } from "@/lib/football-data";
 
 const MATCH_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -86,86 +85,62 @@ export default async function PointTablePage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {standings
-            ? standings.map((group) => (
-                <Card key={group.group} className="gap-2 px-3">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {group.group}
-                  </span>
-                  <ul className="flex flex-col gap-1.5">
-                    {group.table.map((row, i) => (
-                      <li
-                        key={row.team.id}
-                        className="flex items-center justify-between gap-2 text-sm"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={row.team.crest}
-                            alt=""
-                            className="h-4 w-4 shrink-0"
-                          />
-                          <span
-                            className={`truncate ${
-                              i < 2 ? "font-medium" : "text-muted-foreground"
-                            }`}
-                          >
-                            {row.team.shortName}
-                          </span>
+        {standings && standings.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {standings.map((group) => (
+              <Card key={group.group} className="gap-2 px-3">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {group.group}
+                </span>
+                <ul className="flex flex-col gap-1.5">
+                  {group.table.map((row, i) => (
+                    <li
+                      key={row.team.id}
+                      className="flex items-center justify-between gap-2 text-sm"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={row.team.crest}
+                          alt=""
+                          className="h-4 w-4 shrink-0"
+                        />
+                        <span
+                          className={`truncate ${
+                            i < 2 ? "font-medium" : "text-muted-foreground"
+                          }`}
+                        >
+                          {row.team.shortName}
                         </span>
-                        <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                          <span className="tabular-nums">
-                            {row.playedGames}P
-                          </span>
-                          <span className="tabular-nums font-medium text-foreground">
-                            {row.points}pts
-                          </span>
-                          {i < 2 && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {i + 1}
-                            </Badge>
-                          )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                        <span className="tabular-nums">
+                          {row.playedGames}P
                         </span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              ))
-            : groups.map((group) => (
-                <Card key={group.name} className="gap-2 px-3">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Group {group.name}
-                  </span>
-                  <ul className="flex flex-col gap-1.5">
-                    {group.teams.map((team, i) => (
-                      <li
-                        key={team.name}
-                        className="flex items-center justify-between gap-2 text-sm"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base leading-none">
-                            {team.flag}
-                          </span>
-                          <span
-                            className={
-                              i < 2 ? "font-medium" : "text-muted-foreground"
-                            }
-                          >
-                            {team.name}
-                          </span>
+                        <span className="tabular-nums font-medium text-foreground">
+                          {row.points}pts
                         </span>
                         {i < 2 && (
                           <Badge variant="secondary" className="text-[10px]">
                             {i + 1}
                           </Badge>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              ))}
-        </div>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="items-center px-4 py-8 text-center">
+            <p className="text-sm font-medium">Standings unavailable</p>
+            <p className="text-xs text-muted-foreground">
+              We couldn&apos;t load live group stage standings right now.
+              Please check back later.
+            </p>
+          </Card>
+        )}
 
         {results.length > 0 && (
           <section className="flex flex-col gap-3">

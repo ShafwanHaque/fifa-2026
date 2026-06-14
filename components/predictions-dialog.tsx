@@ -85,23 +85,27 @@ export function PredictionsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
+        <div className="h-auto justify-center gap-2.5 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-violet-100 hover:bg-violet-500/15">
+          {/* <Button
           variant="secondary"
           size="lg"
           className="h-auto justify-center gap-2.5 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-violet-100 hover:bg-violet-500/15"
-        >
+        > */}
           <Sparkles className="size-4 text-violet-400" />
           <span className="text-sm font-medium">
-            {userName ? `Predictions · ${totalScore} pts` : "Make Your Predictions"}
+            {userName
+              ? `Predictions · ${totalScore} pts`
+              : "Make Your Predictions"}
           </span>
-        </Button>
+          {/* </Button> */}
+        </div>
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Knockout Predictions</DialogTitle>
           <DialogDescription>
-            Your picks are valuable to us — call the winner of each match
-            before kickoff and climb the leaderboard.
+            Your picks are valuable to us — call the winner of each match before
+            kickoff and climb the leaderboard.
           </DialogDescription>
         </DialogHeader>
 
@@ -141,10 +145,10 @@ export function PredictionsDialog({
 
             {stages.map((stageGroup) => {
               const anyPredictable = stageGroup.matches.some(
-                (m) => m.predictable
+                (m) => m.predictable,
               );
               const anyPicked = stageGroup.matches.some(
-                (m) => m.predictedTeamId !== null
+                (m) => m.predictedTeamId !== null,
               );
 
               return (
@@ -154,15 +158,16 @@ export function PredictionsDialog({
                       {stageGroup.label}
                     </h3>
                     <span className="text-[10px] text-muted-foreground">
-                      +{stageGroup.points.correct} / {stageGroup.points.incorrect} pts
+                      +{stageGroup.points.correct} /{" "}
+                      {stageGroup.points.incorrect} pts
                     </span>
                   </div>
 
                   {!anyPredictable && !anyPicked ? (
                     <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                       <Lock className="size-3.5 shrink-0" />
-                      Matchups not yet determined — check back once the
-                      previous round concludes.
+                      Matchups not yet determined — check back once the previous
+                      round concludes.
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
@@ -206,22 +211,26 @@ function MatchPredictionRow({
       <TeamPickButton
         team={match.homeTeam}
         selected={
-          match.homeTeam.id != null && match.predictedTeamId === match.homeTeam.id
+          match.homeTeam.id != null &&
+          match.predictedTeamId === match.homeTeam.id
         }
         disabled={locked || saving || match.homeTeam.id == null}
         onClick={() => {
-          if (match.homeTeam.id != null) onPick(match.id, match.homeTeam.id, stage);
+          if (match.homeTeam.id != null)
+            onPick(match.id, match.homeTeam.id, stage);
         }}
       />
       <span className="shrink-0 text-[10px] text-muted-foreground">vs</span>
       <TeamPickButton
         team={match.awayTeam}
         selected={
-          match.awayTeam.id != null && match.predictedTeamId === match.awayTeam.id
+          match.awayTeam.id != null &&
+          match.predictedTeamId === match.awayTeam.id
         }
         disabled={locked || saving || match.awayTeam.id == null}
         onClick={() => {
-          if (match.awayTeam.id != null) onPick(match.id, match.awayTeam.id, stage);
+          if (match.awayTeam.id != null)
+            onPick(match.id, match.awayTeam.id, stage);
         }}
       />
       {hasPick && match.result == null && (
@@ -231,7 +240,9 @@ function MatchPredictionRow({
         <span
           className={cn(
             "flex shrink-0 items-center gap-1 text-xs font-semibold",
-            match.result === "correct" ? "text-emerald-400" : "text-destructive"
+            match.result === "correct"
+              ? "text-emerald-400"
+              : "text-destructive",
           )}
         >
           {match.result === "correct" ? (
@@ -239,7 +250,9 @@ function MatchPredictionRow({
           ) : (
             <X className="size-3.5" />
           )}
-          {match.pointsAwarded > 0 ? `+${match.pointsAwarded}` : match.pointsAwarded}
+          {match.pointsAwarded > 0
+            ? `+${match.pointsAwarded}`
+            : match.pointsAwarded}
         </span>
       )}
     </div>
@@ -267,8 +280,9 @@ function TeamPickButton({
         selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-transparent bg-muted/50 text-muted-foreground",
-        !disabled && "cursor-pointer hover:border-foreground/20 hover:text-foreground",
-        disabled && "cursor-not-allowed opacity-70"
+        !disabled &&
+          "cursor-pointer hover:border-foreground/20 hover:text-foreground",
+        disabled && "cursor-not-allowed opacity-70",
       )}
     >
       {team.crest && (

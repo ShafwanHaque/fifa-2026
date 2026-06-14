@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { getMatches, type Match } from "@/lib/football-data";
+import { getMatches, getStandings, type Match, type StandingsGroup } from "@/lib/football-data";
 import { computeScore, type PredictionRow } from "@/lib/predictions";
 
 export interface LeaderboardEntry {
@@ -40,10 +40,17 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     matches = [];
   }
 
+  let standings: StandingsGroup[];
+  try {
+    standings = await getStandings();
+  } catch {
+    standings = [];
+  }
+
   return visitors
     .map((v) => ({
       username: v.username,
-      score: computeScore(predictionsByUser.get(v.username) ?? [], matches),
+      score: computeScore(predictionsByUser.get(v.username) ?? [], matches, standings),
     }))
     .sort((a, b) => b.score - a.score || a.username.localeCompare(b.username));
 }
